@@ -3,10 +3,11 @@ import ast
 import pandas as pd
 import torch
 from hybrid_method import HybridMethod
+import sys
+import argparse
 
 MEMOTRAP_DATAPATH = 'memotrap/1-proverb-ending.csv'
 MODEL = '4bit/Llama-2-7b-chat-hf'
-
 
 def unmarshall_list(data: str) -> List[str]:
     # Use ast.literal_eval to convert the string into a list
@@ -17,18 +18,22 @@ def unmarshall_list(data: str) -> List[str]:
         return []
 
 if __name__ == "__main__":
-    df = pd.read_csv(MEMOTRAP_DATAPATH)
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
+    args = parser.parse_args()
+    device = args.device
 
+    df = pd.read_csv(MEMOTRAP_DATAPATH)
 
     llm = HybridMethod(
         model_name=MODEL,
-        device='cuda'
+        device=device
     )
 
     with torch.no_grad():
         for idx, row in df.iterrows():
-            if idx == 10:
-                print("Completed the test 10 cycles, now finishing")
+            if idx == 5:
+                print("Completed the test 5 cycles, now finishing")
                 break
 
             context: str = row['prompt'].split(":")[0]

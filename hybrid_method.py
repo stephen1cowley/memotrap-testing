@@ -52,9 +52,7 @@ class HybridMethod:
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
 
-        if isinstance(outputs, GenerateOutput):
-            return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-        return None
+        return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
     
     def generate_1(
             self,
@@ -79,10 +77,10 @@ class HybridMethod:
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
 
-        if isinstance(outputs, GenerateOutput):
-            if isinstance(outputs.scores, Tuple):
-                if isinstance(outputs.scores[0], torch.Tensor):
-                    return outputs.scores[0]
+        
+        if isinstance(outputs.scores, Tuple):
+            if isinstance(outputs.scores[0], torch.Tensor):
+                return outputs.scores[0]
         return None
     
     def contrastive_decoding(
