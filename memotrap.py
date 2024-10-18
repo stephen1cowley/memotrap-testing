@@ -3,8 +3,8 @@ import ast
 import pandas as pd
 import torch
 from hybrid_method import HybridMethod
-import sys
 import argparse
+import os
 
 MEMOTRAP_DATAPATH = 'memotrap/1-proverb-ending.csv'
 MODEL = '4bit/Llama-2-7b-chat-hf'
@@ -20,8 +20,12 @@ def unmarshall_list(data: str) -> List[str]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
+    parser.add_argument("--rds", action="store_true")
     args = parser.parse_args()
     device = args.device
+
+    if args.rds:
+        os.environ['TRANSFORMERS_CACHE'] = "/rds/user/ssc42/hpc-work"
 
     df = pd.read_csv(MEMOTRAP_DATAPATH)
 
