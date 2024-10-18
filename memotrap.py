@@ -32,7 +32,7 @@ if __name__ == "__main__":
 
     with torch.no_grad():
         for idx, row in df.iterrows():
-            if idx == 5:
+            if idx == 3:
                 print("Completed the test 5 cycles, now finishing")
                 break
 
