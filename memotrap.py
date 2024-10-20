@@ -20,13 +20,9 @@ def unmarshall_list(data: str) -> List[str]:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
-    parser.add_argument("--rds", action="store_true")
     args = parser.parse_args()
     device = args.device
-
-    if args.rds:
-        os.environ['TRANSFORMERS_CACHE'] = "/rds/user/ssc42/hpc-work"
-
+    
     df = pd.read_csv(MEMOTRAP_DATAPATH)
 
     llm = HybridMethod(
