@@ -3,6 +3,8 @@ import ast
 import pandas as pd
 from hybrid_method import HybridMethod
 import argparse
+import json
+import time
 
 MEMOTRAP_DATAPATH = 'memotrap/1-proverb-ending.csv'
 
@@ -25,7 +27,7 @@ def evaluate_llm(
     Iterate through all memotrap questions and returns the CAD's score (max 860)
     """
     score = 0
-    for _, row in df.iterrows():
+    for idx, row in df.iterrows():
         context: str = row['prompt'].split(":")[0]  # LHS of colon
         prompt: str = row['prompt'].split(":")[1][1:]  # RHS of colon
         answer_index: Literal[0, 1] = row['answer_index']
@@ -37,7 +39,12 @@ def evaluate_llm(
             dola_layers=dola_layers,
             beta=beta
         )
-        if cad_answer == None: RuntimeError("Error with llm generation"); return -1
+
+        if cad_answer == None: return -1  # Error with CAD generation
+        cad_answer = cad_answer[len(context + ": " + prompt):]  # Get the bit after the context and prompt
+        if idx % 100 == 0:
+            print(f"{idx}. CAD answer: {repr(cad_answer)}")
+            print(f"{idx}. Correct answer: {repr(correct_ans)}")
         if cad_answer == correct_ans:
             score += 1
     print(f"RESULT: CAD with coefficient={beta}, dola set to {dola_layers}, model {llm.model_name}, we achieved a score of {score}/860")
@@ -50,16 +57,20 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     args = parser.parse_args()
     
+    time_1 = time.time()
     df = pd.read_csv(MEMOTRAP_DATAPATH)
     llm = HybridMethod(
         model_name=args.model,
         device=args.device
     )
+    ex_time = time.time() - time_1
+    print(f"Model load time: {ex_time:.4f}s")
 
-    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0]
+    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
     results: Dict[str, int] = {}
 
     for beta in betas:
+        time_1 = time.time()
         score: int = evaluate_llm(
             llm=llm,
             beta=beta,
@@ -67,3 +78,10 @@ if __name__ == "__main__":
             df=df,
         )
         results[str(beta)] = score
+        ex_time = time.time() - time_1
+        print(f"Evaluation time for beta={beta}: {ex_time:.4f}s")
+
+    print("Final results:", results)
+    with open('first_results.json', 'w') as json_file:
+        json.dump(results, json_file)
+        print("Successfully finished the experiment")
