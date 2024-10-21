@@ -121,7 +121,8 @@ class HybridMethod:
             self,
             context: str,
             prompt: str,
-            dola_layers: Union[Literal['high', 'low'], None] = None,
+            dola_layers_good: Union[Literal['high', 'low'], None] = None,
+            dola_layers_bad: Union[Literal['high', 'low'], None] = None,
             alpha: float = 0.1,
             beta: float = 1.0,
             max_tokens: int = 20,
@@ -131,8 +132,8 @@ class HybridMethod:
         """
 
         for _ in range(max_tokens):
-            good_dis = self.generate_1(context + ": " + prompt)
-            bad_dis = self.generate_1(prompt)
+            good_dis = self.generate_1(context + ": " + prompt, dola_layers=dola_layers_good)
+            bad_dis = self.generate_1(prompt, dola_layers=dola_layers_bad)
             if good_dis is not None and bad_dis is not None:
                 next_token_id = self.contrastive_decoding(
                     bad_distribution=bad_dis,
