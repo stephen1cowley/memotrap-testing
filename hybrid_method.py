@@ -124,9 +124,13 @@ class HybridMethod:
             dola_layers: Union[Literal['high', 'low'], None] = None,
             alpha: float = 0.1,
             beta: float = 1.0,
+            max_tokens: int = 20,
         ) -> Union[str, None]:
+        """
+        Given an input context and prompt, return the CAD-generated response
+        """
 
-        for _ in range(5):
+        for _ in range(max_tokens):
             good_dis = self.generate_1(context + ": " + prompt)
             bad_dis = self.generate_1(prompt)
             if good_dis is not None and bad_dis is not None:

@@ -45,18 +45,32 @@ def evaluate_llm(
         if idx % 100 == 0:
             print(f"{idx}. CAD answer: {repr(cad_answer)}")
             print(f"{idx}. Correct answer: {repr(correct_ans)}")
-        if cad_answer == correct_ans:
+        if evaluate_ans(correct_ans, cad_answer):
             score += 1
     print(f"RESULT: CAD with coefficient={beta}, dola set to {dola_layers}, model {llm.model_name}, we achieved a score of {score}/860")
     return score
+
+
+def evaluate_ans(
+        correct_answer: str,
+        given_answer: str
+    ) -> bool:
+    """
+    Given that `correct_answer` is a string ending in a period (.), check if `given_answer`
+    contains the `correct_answer` string. Thus we have ended in the correct word
+    """
+    return correct_answer in given_answer
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", type=str, default="huggyllama/llama-7b")
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
+    parser.add_argument("--dola", type=str, choices=["high", "low", "None"], default="None")
     args = parser.parse_args()
-    
+
+    dola_layers: Union[Literal["high", "low"], None] = None if args.dola == "None" else args.dola
+
     time_1 = time.time()
     df = pd.read_csv(MEMOTRAP_DATAPATH)
     llm = HybridMethod(
@@ -66,7 +80,7 @@ if __name__ == "__main__":
     ex_time = time.time() - time_1
     print(f"Model load time: {ex_time:.4f}s")
 
-    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0]
+    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0]
     results: Dict[str, int] = {}
 
     for beta in betas:
@@ -74,7 +88,7 @@ if __name__ == "__main__":
         score: int = evaluate_llm(
             llm=llm,
             beta=beta,
-            dola_layers=None,
+            dola_layers=dola_layers,
             df=df,
         )
         results[str(beta)] = score
