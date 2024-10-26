@@ -5,6 +5,7 @@ import torch
 from hybrid_method import HybridMethod
 import argparse
 import json
+from utils import normalize_answer
 
 NQ_DATAPATH = 'nq/orig_dev_filtered.json'
 MODEL = '4bit/Llama-2-7b-chat-hf'
@@ -53,9 +54,9 @@ if __name__ == "__main__":
 
     if isinstance(cad_answer, str) and isinstance(reg_answer, str):
         print("Question: ", question)
-        print("Answers:", repr(answers))
+        print("Normalized Answers:", " ".join([repr(normalize_answer(answers[i])) for i in range(len(answers))]))
         print("Context:", context)
-        print("Reg. Given answer:", repr(reg_answer))
-        print("CAD Given answer:", repr(cad_answer))
+        print("Reg. Normalized Given answer:", repr(normalize_answer(reg_answer)))
+        print("CAD Normalized Given answer:", repr(normalize_answer(cad_answer)))
     else:
         RuntimeError("Strings not returned by LLMs")
