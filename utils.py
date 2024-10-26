@@ -1,5 +1,6 @@
 import re
 import string
+from typing import List
 
 def normalize_answer(s: str) -> str:
     """Lower text and remove punctuation, articles and extra whitespace."""
@@ -16,6 +17,14 @@ def normalize_answer(s: str) -> str:
 
 def exact_match_score(prediction: str, ground_truth: str) -> bool:
     return (normalize_answer(prediction) == normalize_answer(ground_truth))    
+
+def evaluate_nq_ans(
+        prediction: str,
+        answers: List[str],
+    ) -> bool:
+    norm_prediction = normalize_answer(prediction)
+    norm_answers = [normalize_answer(ans) for ans in answers]
+    return norm_prediction in norm_answers
 
 def recall_score(prediction, ground_truth):
     prediction = normalize_answer(prediction)
