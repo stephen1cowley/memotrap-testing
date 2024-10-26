@@ -23,32 +23,39 @@ if __name__ == "__main__":
         device=device
     )
 
-    for idx, qa in data:
-        if idx == 3:
-            print("Completed the test 3 cycles, now finishing")
-            break
+    qa = data[-5]
 
-        context: str = qa["context"]
-        prompt: str = qa["question"]
-        answers: List[str] = qa["answer"]
+    # if idx == 3:
+    #     print("Completed the test 3 cycles, now finishing")
+    #     break
 
-        cad_answer = llm.cad_generate(
-            context=context,
-            prompt=prompt,
-            dola_layers_good=None,
-            dola_layers_bad=None,
-        )
+    context: str = qa["context"]
+    question: str = qa["question"]
+    answers: List[str] = qa["answer"]
 
-        reg_answer = llm.generate(
-            input_text=context + ": " + prompt,
-            dola_layers=None
-        )
+    cad_answer = llm.cad_generate_nq(
+        context=context,
+        question=question,
+        beta=1.0,
+        dola_layers_good=None,
+        dola_layers_bad=None,
+        max_tokens=5,
+    )
 
-        if isinstance(cad_answer, str) and isinstance(reg_answer, str):
-            cad_answer = cad_answer[len(context + ": " + prompt):]
-            reg_answer = reg_answer[len(context + ": " + prompt):]
+    reg_answer = llm.cad_generate_nq(
+        context=context,
+        question=question,
+        beta=0.0,
+        dola_layers_good=None,
+        dola_layers_bad=None,
+        max_tokens=5,
+    )
 
-            print("Question:", context + ": " + prompt)
-            print("Correct answer:", repr(classes[answer_index]))
-            print("Reg. Given answer:", repr(reg_answer), "(Reg. SUCCESS)\n" if reg_answer == classes[answer_index] else "(Reg. FAIL)")
-            print("CAD Given answer:", repr(cad_answer), "(CAD SUCCESS)\n" if cad_answer == classes[answer_index] else "(CAD FAIL)\n")
+    if isinstance(cad_answer, str) and isinstance(reg_answer, str):
+        print("Question: ", question)
+        print("Answers:", repr(answers))
+        print("Context:", context)
+        print("Reg. Given answer:", repr(reg_answer))
+        print("CAD Given answer:", repr(cad_answer))
+    else:
+        RuntimeError("Strings not returned by LLMs")
