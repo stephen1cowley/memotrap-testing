@@ -51,9 +51,9 @@ class HybridMethod:
             min_new_tokens=1,
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
-
+        if not isinstance(outputs, GenerateOutput): return None
         return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-    
+
     def generate_1(
             self,
             input_text: str,
@@ -76,13 +76,12 @@ class HybridMethod:
             min_new_tokens=1,
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
-
-        
+        if not isinstance(outputs, GenerateOutput): return None
         if isinstance(outputs.scores, Tuple):
             if isinstance(outputs.scores[0], torch.Tensor):
                 return outputs.scores[0]
         return None
-    
+
     def contrastive_decoding(
             self,
             bad_distribution: torch.Tensor,
@@ -117,7 +116,7 @@ class HybridMethod:
             return can_id
         return -1
 
-    def cad_generate(
+    def cad_generate_memotrap(
             self,
             context: str,
             prompt: str,
@@ -132,8 +131,54 @@ class HybridMethod:
         """
 
         for _ in range(max_tokens):
-            good_dis = self.generate_1(context + ": " + prompt, dola_layers=dola_layers_good)
-            bad_dis = self.generate_1(prompt, dola_layers=dola_layers_bad)
+            good_dis = self.generate_1(
+                input_text=context + ": " + prompt,
+                dola_layers=dola_layers_good
+            )
+            bad_dis = self.generate_1(
+                input_text=prompt,
+                dola_layers=dola_layers_bad
+            )
+            if good_dis is not None and bad_dis is not None:
+                next_token_id = self.contrastive_decoding(
+                    bad_distribution=bad_dis,
+                    good_distribution=good_dis,
+                    alpha=alpha,
+                    beta=beta,
+                )
+                if next_token_id == -1:
+                    raise TypeError("contrastive_decoding failed to return correct id")
+                prompt = self.tokenizer.decode(self.tokenizer.encode(prompt) + [next_token_id], skip_special_tokens=True)
+
+                if self.tokenizer.decode(next_token_id) == ".":
+                    break  # Stop generating after the sentence is ended
+            else: raise  
+        return context + ": " + prompt  # Assuming the space was taken out before context and prompt passed in
+
+    def cad_generate_nq(
+            self,
+            prompt: str,
+            context: str,
+            question: str,
+            dola_layers_good: Union[Literal['high', 'low'], None] = None,
+            dola_layers_bad: Union[Literal['high', 'low'], None] = None,
+            alpha: float = 0.1,
+            beta: float = 1.0,
+            max_tokens: int = 20,
+        ) -> Union[str, None]:
+        """
+        Given an input context and prompt, return the CAD-generated response
+        """
+
+        for _ in range(max_tokens):
+            good_dis = self.generate_1(
+                input_text=context + ": " + prompt,
+                dola_layers=dola_layers_good
+            )
+            bad_dis = self.generate_1(
+                input_text=prompt,
+                dola_layers=dola_layers_bad
+            )
             if good_dis is not None and bad_dis is not None:
                 next_token_id = self.contrastive_decoding(
                     bad_distribution=bad_dis,
