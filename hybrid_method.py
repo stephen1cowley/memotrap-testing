@@ -196,6 +196,8 @@ class HybridMethod:
                 for stopping_symbol in stopping_symbols:
                     if stopping_symbol in output:
                         return output
+            else:
+                return None
         return output  # Assuming the space was taken out before context and prompt passed in
 
     def log_probs(

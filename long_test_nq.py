@@ -19,8 +19,9 @@ def evaluate_llm(
     Iterate through all memotrap questions and returns the CAD's score (max 860).
     Returns an integer score of exact matches (EMs).
     """
-    score = 0
-    for idx, qa in enumerate(data):
+    score: int = 0
+    print("Length of data", len(data))
+    for idx, qa in enumerate(data[0:100]):
         context: str = qa["context"]
         question: str = qa["question"]
         answers: List[str] = qa["answer"]
@@ -61,14 +62,13 @@ if __name__ == "__main__":
     with open(NQ_DATAPATH, 'r') as file:
         data: List[Any] = json.load(file)
 
-
-    time_1 = time.time()
+    time_0 = time.time()
 
     llm = HybridMethod(
         model_name=args.model,
         device=args.device
     )
-    ex_time = time.time() - time_1
+    ex_time = time.time() - time_0
     print(f"Model load time: {ex_time:.4f}s")
 
     betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
@@ -85,6 +85,10 @@ if __name__ == "__main__":
         )
         results[str(beta)] = score
         ex_time = time.time() - time_1
+        tot_time = time.time() - time_0
+        if tot_time * 60 >= 9: # 9 mins
+            break
+
         print(f"Evaluation time for beta={beta}: {ex_time:.4f}s")
 
     print("Final results:", results)
