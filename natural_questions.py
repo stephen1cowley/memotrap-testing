@@ -26,10 +26,6 @@ if __name__ == "__main__":
 
     qa = data[-5]
 
-    # if idx == 3:
-    #     print("Completed the test 3 cycles, now finishing")
-    #     break
-
     context: str = qa["context"]
     question: str = qa["question"]
     answers: List[str] = qa["answer"]
