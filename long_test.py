@@ -34,7 +34,7 @@ def evaluate_llm(
         answer_index: Literal[0, 1] = row['answer_index']
         correct_ans: str = unmarshall_list(row['classes'])[answer_index]
 
-        cad_answer = llm.cad_generate(
+        cad_answer = llm.cad_generate_memotrap(
             context=context,
             prompt=prompt,
             dola_layers_good=dola_layers_good,
@@ -101,6 +101,6 @@ if __name__ == "__main__":
         print(f"Evaluation time for beta={beta}: {ex_time:.4f}s")
 
     print("Final results:", results)
-    with open(f'cad_dola_{str(dola_layers_good)}_{str(dola_layers_good)}.json', 'w') as json_file:
+    with open(f'cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
         json.dump(results, json_file)
         print("Successfully finished the experiment")
