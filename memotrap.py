@@ -41,10 +41,11 @@ if __name__ == "__main__":
             classes: List[str] = unmarshall_list(row['classes'])
             answer_index: Literal[0, 1] = row['answer_index']
 
-            cad_answer = llm.cad_generate(
+            cad_answer = llm.cad_generate_memotrap(
                 context=context,
                 prompt=prompt,
-                dola_layers=None
+                dola_layers_good=None,
+                dola_layers_bad=None
             )
 
             reg_answer = llm.generate(
