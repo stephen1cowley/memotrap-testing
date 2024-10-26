@@ -190,9 +190,7 @@ class HybridMethod:
                 )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
-                print(next_token_id)
                 output = self.tokenizer.decode(self.tokenizer.encode(output) + [next_token_id], skip_special_tokens=True)
-                print(output)
 
                 stopping_symbols = [".", "\n"]
                 for stopping_symbol in stopping_symbols:
