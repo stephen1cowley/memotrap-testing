@@ -2,7 +2,7 @@ from typing import Literal, Any, Tuple, List, Union
 import torch
 import torch.nn.functional as F
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel, StoppingCriteria, StoppingCriteriaList
-from transformers.generation.utils import GenerateOutput
+from transformers.generation.utils import GenerateOutput, ModelOutput
 
 from transformers import StoppingCriteria, StoppingCriteriaList
 
@@ -51,7 +51,7 @@ class HybridMethod:
             min_new_tokens=1,
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
-        if not isinstance(outputs, GenerateOutput): return None
+        if not isinstance(outputs, ModelOutput): return None
         return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
 
     def generate_1(
@@ -76,7 +76,7 @@ class HybridMethod:
             min_new_tokens=1,
             stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
-        if not isinstance(outputs, GenerateOutput): return None
+        if not isinstance(outputs, ModelOutput): return None
         if isinstance(outputs.scores, Tuple):
             if isinstance(outputs.scores[0], torch.Tensor):
                 return outputs.scores[0]
@@ -157,7 +157,6 @@ class HybridMethod:
 
     def cad_generate_nq(
             self,
-            prompt: str,
             context: str,
             question: str,
             dola_layers_good: Union[Literal['high', 'low'], None] = None,
@@ -169,14 +168,17 @@ class HybridMethod:
         """
         Given an input context and prompt, return the CAD-generated response
         """
+        sys_prompt_context: str = "Instruction: read the given information and answer the corresponding question.\n\n"
+        sys_prompt_no_context: str = "Instruction: answer the corresponding question.\n\n"
+        output: str = " "
 
         for _ in range(max_tokens):
             good_dis = self.generate_1(
-                input_text=context + ": " + prompt,
+                input_text=sys_prompt_context + context + "\nQ: " + question + "\nA:" + output,
                 dola_layers=dola_layers_good
             )
             bad_dis = self.generate_1(
-                input_text=prompt,
+                input_text=sys_prompt_no_context + "Q: " + question + "\nA:" + output,
                 dola_layers=dola_layers_bad
             )
             if good_dis is not None and bad_dis is not None:
@@ -188,12 +190,15 @@ class HybridMethod:
                 )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
-                prompt = self.tokenizer.decode(self.tokenizer.encode(prompt) + [next_token_id], skip_special_tokens=True)
+                print(next_token_id)
+                output = self.tokenizer.decode(self.tokenizer.encode(output) + [next_token_id], skip_special_tokens=True)
+                print(output)
 
-                if self.tokenizer.decode(next_token_id) == ".":
-                    break  # Stop generating after the sentence is ended
-            else: raise  
-        return context + ": " + prompt  # Assuming the space was taken out before context and prompt passed in
+                stopping_symbols = [".", "\n"]
+                for stopping_symbol in stopping_symbols:
+                    if stopping_symbol in output:
+                        return output
+        return output  # Assuming the space was taken out before context and prompt passed in
 
     def log_probs(
             self,
