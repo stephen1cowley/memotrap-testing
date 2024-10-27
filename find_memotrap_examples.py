@@ -60,7 +60,11 @@ def evaluate_both_llms(
         if cad_answer is None or reg_answer is None or dola_cad_answer is None:
             # Error with CAD generation
             print("Error on question", idx)
-            continue  
+            continue
+
+        cad_answer = cad_answer[len(context + ": " + prompt):]
+        reg_answer = reg_answer[len(context + ": " + prompt):]
+        dola_cad_answer = dola_cad_answer[len(context + ": " + prompt):]
 
         # Now extract the examples of interest:
         # regular incorrect, cad correct, cad-dola incorrect
