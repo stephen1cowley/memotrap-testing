@@ -65,6 +65,7 @@ if __name__ == "__main__":
     dola_layers_good: Union[Literal["high", "low"], None] = None if args.dola_layers_good == "None" else args.dola_layers_good
     dola_layers_bad: Union[Literal["high", "low"], None] = None if args.dola_layers_bad == "None" else args.dola_layers_bad
 
+    max_time: float = 7*3600
     
     with open(NQ_DATAPATH, 'r') as file:
         data: List[Any] = json.load(file)
@@ -87,7 +88,7 @@ if __name__ == "__main__":
             llm=llm,
             beta=beta,
             time_0=time_0,
-            max_time=9*60,
+            max_time=max_time,
             data=data,
             dola_layers_good=dola_layers_good,
             dola_layers_bad=dola_layers_bad,
@@ -96,7 +97,7 @@ if __name__ == "__main__":
         ex_time = time.time() - time_1
         tot_time = time.time() - time_0
         print(f"Evaluation time for beta={beta}: {ex_time:.4f}s")
-        if tot_time / (60 * 60) >= 7.0: # 9 mins
+        if tot_time >= max_time:
             print("7 hrs up")
             break
 
