@@ -1,5 +1,6 @@
-from typing import Literal, Any, Tuple, List, Union
+from typing import Literal, Any, Tuple, List, Union, Dict, Optional
 import torch
+import numpy as np
 import torch.nn.functional as F
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel, StoppingCriteria, StoppingCriteriaList
 from transformers.generation.utils import GenerateOutput, ModelOutput
@@ -81,6 +82,120 @@ class HybridMethod:
             if isinstance(outputs.scores[0], torch.Tensor):
                 return outputs.scores[0]
         return None
+    
+    def generate_1_dis(
+            self,
+            input_text: str,
+            dola_layers: Union[Literal['high', 'low'], None] = None,
+        ) -> Any:
+        """
+        Like `generate_1()` but for outputting the actual probability distributions at each layer
+        """
+        inputs: Any = self.tokenizer(input_text, return_tensors="pt").to(self.device)
+
+        outputs = self.model.generate(
+            **inputs,
+            output_scores=True,
+            return_dict_in_generate=True,
+            output_hidden_states=True,
+            dola_layers=dola_layers,
+            max_new_tokens=1,
+            min_new_tokens=1,
+            stopping_criteria=StoppingCriteriaList([self.stop_on_period])
+        )
+        if not isinstance(outputs, ModelOutput): return None
+
+        # Extract hidden states at each layer
+        hidden_states = outputs.hidden_states[0] #type: ignore
+
+        with torch.no_grad():
+            # Calculate logits at each layer
+            layer_logits = []
+            for hidden_state in hidden_states: #type: ignore
+                logits = self.model.lm_head(hidden_state)
+                layer_logits.append(logits[:, -1, :])  # Shape: [batch_size, sequence_length, vocab_size]
+
+        # print(layer_logits)
+        # return self.logits_to_pmf(outputs.scores[0]) #type: ignore
+        return [dis for dis in layer_logits], outputs.scores[0] #type: ignore
+
+    def logits_to_pmf(
+            self,
+            distribution: torch.Tensor,
+            token_ids_of_interest: Optional[List[int]] = None,
+        ) -> Dict[str, float]:
+        """
+        Takes the tensor distribution and returns something a bit more readable.
+        """
+        
+        pmf: Dict[str, float] = {}
+        probs = torch.softmax(distribution, dim=-1)
+
+        if token_ids_of_interest:
+            plausible_ids = token_ids_of_interest
+        else:
+            _, plausible_ids = torch.topk(distribution, 10, dim=-1)
+            plausible_ids = plausible_ids[0]
+
+        for id in plausible_ids:
+            token: str = self.tokenizer.decode(id)
+            pmf[token] = float(probs[0, id])
+
+        return self.renormalize_pmf(pmf)
+
+    def cad_dola_verbose_memotrap(
+            self,
+            context: str,
+            prompt: str,
+            token_ids_of_interest: Union[List[int], None] = None,
+            dola_layers_good: Union[Literal['high', 'low'], None] = None,
+            dola_layers_bad: Union[Literal['high', 'low'], None] = None,
+            alpha: float = 0.1,
+            betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+        ) -> Any:
+        "Return the probability distributions of interest for the next token"
+
+        each_dis_with_context, dis_with_context = self.generate_1_dis(
+            input_text=context + ': ' + prompt,
+            dola_layers=dola_layers_good
+        )
+        print("Extracted dis with context")
+        dis_with_context = torch.where(dis_with_context == float('-inf'), torch.tensor(-1000.0), dis_with_context)
+
+        each_dis_no_context, dis_no_context = self.generate_1_dis(
+            input_text=prompt,
+            dola_layers=dola_layers_bad
+        )
+        print("Extracted dis no context")
+        dis_no_context = torch.where(dis_no_context == float('-inf'), torch.tensor(-1000.0), dis_no_context)
+        each_cad_dis: Dict[str, Any] = {}
+
+        for beta in betas:
+            cad_dis = self.contrastive_decoding_verb(
+                bad_distribution=dis_no_context,
+                good_distribution=dis_with_context,
+                alpha=alpha,
+                beta=beta,
+            )
+            each_cad_dis[str(beta)] = self.logits_to_pmf(cad_dis, token_ids_of_interest=token_ids_of_interest)
+
+        print("Extracted prob dis of each CAD")
+
+        return {
+            "each_dis_with_context": [self.logits_to_pmf(dis, token_ids_of_interest=token_ids_of_interest) for dis in each_dis_with_context],
+            "dis_with_context": self.logits_to_pmf(dis_with_context, token_ids_of_interest=token_ids_of_interest),
+            "each_dis_no_context": [self.logits_to_pmf(dis, token_ids_of_interest=token_ids_of_interest) for dis in each_dis_no_context],
+            "dis_no_context": self.logits_to_pmf(dis_no_context, token_ids_of_interest=token_ids_of_interest),
+            "each_cad_dis": each_cad_dis
+        }
+
+    def renormalize_pmf(self, pmf: Dict[str, float]) -> Dict[str, float]:
+        "Make sure a dict pmf has values that sum to 1.0"
+        Z = sum([prob for prob in pmf.values()])
+        norm_pmf: Dict[str, float] = {}
+        for key in pmf:
+            norm_pmf[key] = pmf[key] / Z if Z !=0 else 1 / len(pmf)
+        return norm_pmf
 
     def contrastive_decoding(
             self,
@@ -115,6 +230,35 @@ class HybridMethod:
         if not can_id is None:
             return can_id
         return -1
+    
+    def contrastive_decoding_verb(
+            self,
+            bad_distribution: torch.Tensor,
+            good_distribution: torch.Tensor,
+            alpha: float = 0.1,
+            beta: float = 1.0,
+        ) -> torch.Tensor:
+        """
+        Take 2 distributions, do contrastive decoding with adaptive plausibility constraint
+        then return the output distribution. Alpha and beta default to literature values.
+        """
+        # Replace -inf with -1000 and inf with 1000
+        bad_distribution = torch.where(bad_distribution == float('-inf'), torch.tensor(-1000.0), bad_distribution)
+        bad_distribution = torch.where(bad_distribution == float('inf'), torch.tensor(1000.0), bad_distribution)
+        good_distribution = torch.where(good_distribution == float('-inf'), torch.tensor(-1000.0), good_distribution)
+        good_distribution = torch.where(good_distribution == float('inf'), torch.tensor(1000.0), good_distribution)
+
+        good_probs = torch.softmax(good_distribution, dim=-1)
+        thresh = alpha * float(torch.max(good_probs).item())
+        plausible_ids = (good_probs > thresh).nonzero(as_tuple=True)[-1]
+
+        out_dis = torch.Tensor([[float('-inf')] * 32000])  # Initially assume every token has probability 0
+
+        for id in plausible_ids:
+            id = int(id)
+            logit = (1 + beta) * good_distribution[0, id] - beta * bad_distribution[0, id]
+            out_dis[0, id] = logit
+        return out_dis
 
     def cad_generate_memotrap(
             self,
