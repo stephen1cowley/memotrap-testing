@@ -1,6 +1,15 @@
 import re
 import string
-from typing import List
+from typing import List, Dict
+
+def renormalize_pmf(pmf: Dict[str, float]) -> Dict[str, float]:
+        "Make sure a dict pmf has values that sum to 1.0"
+        Z = sum([prob for prob in pmf.values()])
+        norm_pmf: Dict[str, float] = {}
+        for key in pmf:
+            norm_pmf[key] = pmf[key] / Z
+        return norm_pmf
+
 
 def normalize_answer(s: str) -> str:
     """Lower text and remove punctuation, articles and extra whitespace."""
