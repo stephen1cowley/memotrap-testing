@@ -10,11 +10,8 @@ llm = HybridMethod(
     device="cuda"
 )
 
-context = 'Write a quote that ends in the word ""affairs""'
-prompt = 'Mind your own'
-
-# context = 'Write a quote that ends in the word ""happy""'
-# prompt = 'The customer is always'
+context = 'Write a quote that ends in the word ""happy""'
+prompt = 'The customer is always'
 
 all_distributions = llm.cad_dola_verbose_memotrap(
     context=context,
