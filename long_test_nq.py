@@ -22,7 +22,6 @@ def evaluate_llm(
     Returns an integer score of exact matches (EMs).
     """
     score: int = 0
-    print("Length of data", len(data))
     for idx, qa in enumerate(data):
         context: str = qa["context"]
         question: str = qa["question"]
@@ -31,9 +30,9 @@ def evaluate_llm(
         cad_answer = llm.cad_generate_nq(
             context=context,
             question=question,
-            beta=1.0,
-            dola_layers_good=None,
-            dola_layers_bad=None,
+            beta=beta,
+            dola_layers_good=dola_layers_good,
+            dola_layers_bad=dola_layers_bad,
             max_tokens=20,
         )
 
@@ -49,7 +48,7 @@ def evaluate_llm(
             print("Time:", time.time() - time_0)
         if evaluate_nq_ans(cad_answer, answers):
             score += 1
-    print(f"RESULT: CAD with coefficient={beta}, dola-good set to {dola_layers_good}, dola-bad set to {dola_layers_bad}, model {llm.model_name}, we achieved a score of {score}/860")
+    print(f"RESULT: CAD with coefficient={beta}, dola-good set to {dola_layers_good}, dola-bad set to {dola_layers_bad}, model {llm.model_name}, we achieved a score of {score}/{len(data)}")
     return score
 
 
