@@ -83,7 +83,31 @@ class HybridMethod:
                 return outputs.scores[0]
         return None
     
-    def generate_1_dis(
+    def generate_1_final_dis(
+            self,
+            input_text: str,
+            dola_layers: Union[Literal['high', 'low'], None] = None,
+        ) -> Any:
+        """
+        Like `generate_1()` but for outputting the actual probability distributions at the final layer
+        """
+        inputs: Any = self.tokenizer(input_text, return_tensors="pt").to(self.device)
+
+        outputs = self.model.generate(
+            **inputs,
+            output_scores=True,
+            return_dict_in_generate=True,
+            output_hidden_states=True,
+            dola_layers=dola_layers,
+            max_new_tokens=1,
+            min_new_tokens=1,
+            stopping_criteria=StoppingCriteriaList([self.stop_on_period])
+        )
+        if not isinstance(outputs, ModelOutput): return None
+
+        return outputs.scores[0] #type: ignore
+    
+    def generate_1_each_dis(
             self,
             input_text: str,
             dola_layers: Union[Literal['high', 'low'], None] = None,
@@ -117,7 +141,7 @@ class HybridMethod:
 
         # print(layer_logits)
         # return self.logits_to_pmf(outputs.scores[0]) #type: ignore
-        return [dis for dis in layer_logits], outputs.scores[0] #type: ignore
+        return [dis for dis in layer_logits] #type: ignore
 
     def logits_to_pmf(
             self,
@@ -155,19 +179,28 @@ class HybridMethod:
         ) -> Any:
         "Return the probability distributions of interest for the next token"
 
-        each_dis_with_context, dis_with_context = self.generate_1_dis(
+        each_dis_with_context = self.generate_1_each_dis(
             input_text=context + ': ' + prompt,
-            dola_layers=dola_layers_good
+            dola_layers=None
         )
-        print("Extracted dis with context")
-        dis_with_context = torch.where(dis_with_context == float('-inf'), torch.tensor(-1000.0), dis_with_context)
+        print("Extracted each_dis_with_context")
 
-        each_dis_no_context, dis_no_context = self.generate_1_dis(
+        each_dis_no_context = self.generate_1_each_dis(
             input_text=prompt,
-            dola_layers=dola_layers_bad
+            dola_layers=None
         )
-        print("Extracted dis no context")
-        dis_no_context = torch.where(dis_no_context == float('-inf'), torch.tensor(-1000.0), dis_no_context)
+        print("Extracted each_dis_no_context")
+        
+        dis_no_context = self.generate_1_final_dis(
+            input_text=prompt,
+            dola_layers=None
+        )
+
+        dis_with_context = self.generate_1_final_dis(
+            input_text=context + ': ' + prompt,
+            dola_layers=None
+        )
+        
         each_cad_dis: Dict[str, Any] = {}
 
         for beta in betas:
@@ -181,12 +214,38 @@ class HybridMethod:
 
         print("Extracted prob dis of each CAD")
 
+        dola_dis_no_context = self.generate_1_final_dis(
+            input_text=prompt,
+            dola_layers=dola_layers_bad
+        )
+
+        dola_dis_with_context = self.generate_1_final_dis(
+            input_text=context + ': ' + prompt,
+            dola_layers=dola_layers_good
+        )
+
+        dola_each_cad_dis: Dict[str, Any] = {}
+
+        for beta in betas:
+            dola_cad_dis = self.contrastive_decoding_verb(
+                bad_distribution=dola_dis_no_context,
+                good_distribution=dola_dis_with_context,
+                alpha=alpha,
+                beta=beta,
+            )
+            dola_each_cad_dis[str(beta)] = self.logits_to_pmf(dola_cad_dis, token_ids_of_interest=token_ids_of_interest)
+
+        print("Extracted DoLa prob dis of each CAD")
+
         return {
             "each_dis_with_context": [self.logits_to_pmf(dis, token_ids_of_interest=token_ids_of_interest) for dis in each_dis_with_context],
             "dis_with_context": self.logits_to_pmf(dis_with_context, token_ids_of_interest=token_ids_of_interest),
             "each_dis_no_context": [self.logits_to_pmf(dis, token_ids_of_interest=token_ids_of_interest) for dis in each_dis_no_context],
             "dis_no_context": self.logits_to_pmf(dis_no_context, token_ids_of_interest=token_ids_of_interest),
-            "each_cad_dis": each_cad_dis
+            "each_cad_dis": each_cad_dis,
+            "dola_dis_with_context": self.logits_to_pmf(dola_dis_with_context, token_ids_of_interest=token_ids_of_interest),
+            "dola_dis_no_context": self.logits_to_pmf(dola_dis_no_context, token_ids_of_interest=token_ids_of_interest),
+            "dola_each_cad_dis": dola_each_cad_dis,
         }
 
     def renormalize_pmf(self, pmf: Dict[str, float]) -> Dict[str, float]:
@@ -196,6 +255,59 @@ class HybridMethod:
         for key in pmf:
             norm_pmf[key] = pmf[key] / Z if Z !=0 else 1 / len(pmf)
         return norm_pmf
+    
+    def determine_candidate_3(
+            self,
+            context: str,
+            prompt: str,
+        ) -> List[Any]:
+        """
+        For visualisation on the probability simplex, we want to determine which are the best top 3 token
+        ids that we're interested in. The first is the correct answer with CAD of 1.0. The second is the
+        incorrect answer with CAD of 0.0.
+        """
+        good_dis = self.generate_1_final_dis(
+            input_text=context + ": " + prompt,
+        )
+        bad_dis = self.generate_1_final_dis(
+            input_text=prompt,
+        )
+        cad_dis = self.contrastive_decoding_verb(
+            good_distribution=good_dis,
+            bad_distribution=bad_dis
+        )
+        dola_good_dis = self.generate_1_final_dis(
+            input_text=context + ": " + prompt,
+            dola_layers='high'
+        )
+        dola_bad_dis = self.generate_1_final_dis(
+            input_text=prompt,
+            dola_layers='high'
+        )
+        dola_cad_dis = self.contrastive_decoding_verb(
+            good_distribution=dola_good_dis,
+            bad_distribution=dola_bad_dis
+        )
+
+        _, bad_ids = torch.topk(bad_dis, 3, dim=-1)
+        bad_ids = bad_ids.flatten().tolist()
+        best_cad_vals, best_cad_id = torch.topk(cad_dis, 2, dim=-1)
+        best_cad_ids = best_cad_id.flatten().tolist()
+        best_cad_vals = best_cad_vals.flatten().tolist()
+
+        best_dola_cad_vals, best_dola_cad_id = torch.topk(dola_cad_dis, 2, dim=-1)
+        best_dola_cad_id = best_dola_cad_id.flatten().tolist()
+        best_dola_cad_vals = best_dola_cad_vals.flatten().tolist()
+
+        if best_cad_vals[1] > 0 and best_dola_cad_id[0] not in best_cad_ids:  # Check not -inf
+            return best_cad_ids + [best_dola_cad_id[0]] 
+        elif best_dola_cad_vals[1] > 0 and best_cad_ids[0] not in best_dola_cad_id: # Check not -inf
+            return [best_cad_ids[0]] + best_dola_cad_id
+        elif bad_ids[1] not in [best_cad_ids[0], best_dola_cad_id[0]]:
+            return [best_cad_ids[0]] + [best_dola_cad_id[0]] + [bad_ids[1]]
+        else:
+            return [best_cad_ids[0]] + [best_dola_cad_id[0]] + [bad_ids[2]]
+
 
     def contrastive_decoding(
             self,
@@ -258,7 +370,7 @@ class HybridMethod:
             id = int(id)
             logit = (1 + beta) * good_distribution[0, id] - beta * bad_distribution[0, id]
             out_dis[0, id] = logit
-        return out_dis
+        return out_dis.to(self.device)
 
     def cad_generate_memotrap(
             self,
