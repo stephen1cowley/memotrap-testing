@@ -39,7 +39,7 @@ def evaluate_llm(
             prompt=prompt,
             dola_layers_good=dola_layers_good,
             dola_layers_bad=dola_layers_bad,
-            beta=beta
+            gamma=beta
         )
 
         if cad_answer == None: return -1  # Error with CAD generation
