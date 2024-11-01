@@ -364,9 +364,9 @@ class HybridMethod:
 
         good_probs = torch.softmax(good_distribution, dim=-1)
         bad_probs = torch.softmax(bad_distribution, dim=-1)
-        
+
         new_probs = good_probs + gamma*(good_probs - bad_probs)
-        max_index = torch.argmax(new_probs)[1].item()
+        max_index = torch.argmax(new_probs).item()
 
         if not max_index is None:
             return int(max_index)
@@ -409,6 +409,7 @@ class HybridMethod:
             dola_layers_bad: Union[Literal['high', 'low'], None] = None,
             alpha: float = 0.1,
             beta: float = 1.0,
+            gamma: Union[float, None] = None,
             max_tokens: int = 20,
         ) -> Union[str, None]:
         """
@@ -425,12 +426,19 @@ class HybridMethod:
                 dola_layers=dola_layers_bad
             )
             if good_dis is not None and bad_dis is not None:
-                next_token_id = self.contrastive_decoding(
-                    bad_distribution=bad_dis,
-                    good_distribution=good_dis,
-                    alpha=alpha,
-                    beta=beta,
-                )
+                if gamma is None:
+                    next_token_id = self.contrastive_decoding(
+                        bad_distribution=bad_dis,
+                        good_distribution=good_dis,
+                        alpha=alpha,
+                        beta=beta,
+                    )
+                elif gamma:
+                    next_token_id = self.contrastive_decoding_novel(
+                        bad_distribution=bad_dis,
+                        good_distribution=good_dis,
+                        gamma=gamma
+                    )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
                 prompt = self.tokenizer.decode(self.tokenizer.encode(prompt) + [next_token_id], skip_special_tokens=True)
