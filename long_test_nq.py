@@ -55,7 +55,7 @@ def evaluate_llm(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="huggyllama/llama-7b")
+    parser.add_argument("--model", type=str, default="huggyllama/llama-30b")
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--dola-layers-good", type=str, choices=["high", "low", "None"], default="None")
     parser.add_argument("--dola-layers-bad", type=str, choices=["high", "low", "None"], default="None")
