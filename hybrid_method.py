@@ -321,6 +321,7 @@ class HybridMethod:
         then return the token id with highest logit. Alpha and beta default to literature values.
         """
         # Replace -inf with -1000 and inf with 1000
+        # good and bad distributions are of shape (1, 32000)
         bad_distribution = torch.where(bad_distribution == float('-inf'), torch.tensor(-1000.0), bad_distribution)
         bad_distribution = torch.where(bad_distribution == float('inf'), torch.tensor(1000.0), bad_distribution)
         good_distribution = torch.where(good_distribution == float('-inf'), torch.tensor(-1000.0), good_distribution)
@@ -333,6 +334,7 @@ class HybridMethod:
         max_logit = float('-inf')
         can_id = None
 
+        # go through all plausible id logits, and find the maximum post-contrasting
         for id in plausible_ids:
             id = int(id)
             logit = (1 + beta) * good_distribution[0, id] - beta * bad_distribution[0, id]
@@ -341,6 +343,33 @@ class HybridMethod:
                 can_id = id
         if not can_id is None:
             return can_id
+        return -1
+    
+    def contrastive_decoding_novel(
+            self,
+            bad_distribution: torch.Tensor,
+            good_distribution: torch.Tensor,
+            gamma: float = 0.0,
+        ) -> int:
+        """
+        Take 2 distributions, do contrastive decoding with adaptive plausibility constraint
+        then return the token id with highest logit. Alpha and beta default to literature values.
+        """
+        # Replace -inf with -1000 and inf with 1000
+        # good and bad distributions are of shape (1, 32000)
+        bad_distribution = torch.where(bad_distribution == float('-inf'), torch.tensor(-1000.0), bad_distribution)
+        bad_distribution = torch.where(bad_distribution == float('inf'), torch.tensor(1000.0), bad_distribution)
+        good_distribution = torch.where(good_distribution == float('-inf'), torch.tensor(-1000.0), good_distribution)
+        good_distribution = torch.where(good_distribution == float('inf'), torch.tensor(1000.0), good_distribution)
+
+        good_probs = torch.softmax(good_distribution, dim=-1)
+        bad_probs = torch.softmax(bad_distribution, dim=-1)
+        
+        new_probs = good_probs + gamma*(good_probs - bad_probs)
+        max_index = torch.argmax(new_probs)[1].item()
+
+        if not max_index is None:
+            return int(max_index)
         return -1
     
     def contrastive_decoding_verb(
