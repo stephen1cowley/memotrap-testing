@@ -365,7 +365,7 @@ class HybridMethod:
         good_probs = torch.softmax(good_distribution, dim=-1)
         bad_probs = torch.softmax(bad_distribution, dim=-1)
 
-        new_probs = good_probs + gamma*(good_probs - bad_probs)
+        new_probs = bad_probs + (good_probs - bad_probs) * (10**gamma)
         max_index = torch.argmax(new_probs).item()
 
         if not max_index is None:
@@ -433,7 +433,7 @@ class HybridMethod:
                         alpha=alpha,
                         beta=beta,
                     )
-                elif gamma:
+                elif gamma is not None:
                     next_token_id = self.contrastive_decoding_novel(
                         bad_distribution=bad_dis,
                         good_distribution=good_dis,
