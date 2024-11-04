@@ -485,10 +485,10 @@ class HybridMethod:
                     raise TypeError("contrastive_decoding failed to return correct id")
                 output = self.tokenizer.decode(self.tokenizer.encode(output) + [next_token_id], skip_special_tokens=True)
 
-                stopping_symbols = [".", "\n"]
-                for stopping_symbol in stopping_symbols:
-                    if stopping_symbol in output:
-                        return output
+                # stopping_symbols = [".", "\n"]
+                # for stopping_symbol in stopping_symbols:
+                #     if stopping_symbol in output:
+                #         return output
             else:
                 return None
         return output  # Assuming the space was taken out before context and prompt passed in
