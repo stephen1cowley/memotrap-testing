@@ -2,7 +2,7 @@ from typing import List, Any, Union, Literal, Dict
 from hybrid_method import HybridMethod
 import argparse
 import json
-from utils import normalize_answer, evaluate_nq_ans
+from utils import normalize_answer, evaluate_nq_ans_recall
 import time
 
 NQ_DATAPATH = 'nq/orig_dev_filtered.json'
@@ -46,7 +46,7 @@ def evaluate_llm(
             print(f"{idx}. CAD answer: {repr(normalize_answer(cad_answer))}")
             print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i])) for i in range(len(answers))]))
             print("Time:", time.time() - time_0)
-        if evaluate_nq_ans(cad_answer, answers):
+        if evaluate_nq_ans_recall(cad_answer, answers):
             score += 1
     print(f"RESULT: CAD with coefficient={beta}, dola-good set to {dola_layers_good}, dola-bad set to {dola_layers_bad}, model {llm.model_name}, we achieved a score of {score}/{len(data)}")
     return score
@@ -55,7 +55,7 @@ def evaluate_llm(
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--model", type=str, default="huggyllama/llama-30b")
+    parser.add_argument("--model", type=str, default="huggyllama/llama-7b")
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--dola-layers-good", type=str, choices=["high", "low", "None"], default="None")
     parser.add_argument("--dola-layers-bad", type=str, choices=["high", "low", "None"], default="None")
