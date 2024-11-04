@@ -27,12 +27,27 @@ def normalize_answer(s: str) -> str:
 def exact_match_score(prediction: str, ground_truth: str) -> bool:
     return (normalize_answer(prediction) == normalize_answer(ground_truth))    
 
-def evaluate_nq_ans(
+def evaluate_nq_ans_recall(
         prediction: str,
         answers: List[str],
     ) -> bool:
+    "Recall metric (not exact match)"
     norm_prediction = normalize_answer(prediction)
     norm_answers = [normalize_answer(ans) for ans in answers]
+
+    for norm_answer in norm_answers:
+        if norm_answer in norm_prediction:
+            return True
+    return False
+
+def evaluate_nq_ans_em(
+        prediction: str,
+        answers: List[str],
+    ) -> bool:
+    "Exact match metric"
+    norm_prediction = normalize_answer(prediction)
+    norm_answers = [normalize_answer(ans) for ans in answers]
+
     return norm_prediction in norm_answers
 
 def recall_score(prediction, ground_truth):
