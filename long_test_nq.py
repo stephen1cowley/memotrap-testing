@@ -2,7 +2,7 @@ from typing import List, Any, Union, Literal, Dict
 from hybrid_method import HybridMethod
 import argparse
 import json
-from utils import normalize_answer, evaluate_nq_ans_recall
+from utils import normalize_answer, evaluate_nq_ans_recall, evaluate_nq_ans_em
 import time
 
 NQ_DATAPATH = 'nq/orig_dev_filtered.json'
@@ -46,7 +46,7 @@ def evaluate_llm(
             print(f"{idx}. CAD answer: {repr(normalize_answer(cad_answer))}")
             print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i])) for i in range(len(answers))]))
             print("Time:", time.time() - time_0)
-        if evaluate_nq_ans_recall(cad_answer, answers):
+        if evaluate_nq_ans_em(cad_answer, answers):
             score += 1
     print(f"RESULT: CAD with coefficient={beta}, dola-good set to {dola_layers_good}, dola-bad set to {dola_layers_bad}, model {llm.model_name}, we achieved a score of {score}/{len(data)}")
     return score
@@ -64,7 +64,7 @@ if __name__ == "__main__":
     dola_layers_good: Union[Literal["high", "low"], None] = None if args.dola_layers_good == "None" else args.dola_layers_good
     dola_layers_bad: Union[Literal["high", "low"], None] = None if args.dola_layers_bad == "None" else args.dola_layers_bad
 
-    max_time: float = 7*3600
+    max_time: float = 1*3600
     
     with open(NQ_DATAPATH, 'r') as file:
         data: List[Any] = json.load(file)
@@ -78,7 +78,8 @@ if __name__ == "__main__":
     ex_time = time.time() - time_0
     print(f"Model load time: {ex_time:.4f}s")
 
-    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    # betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    betas: List[float] = [-0.5]
     results: Dict[str, int] = {}
 
     for beta in betas:
@@ -101,6 +102,6 @@ if __name__ == "__main__":
             break
 
     print("Final results:", results)
-    with open(f'nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
+    with open(f'new_em_nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
         json.dump(results, json_file)
         print("Successfully finished the experiment")
