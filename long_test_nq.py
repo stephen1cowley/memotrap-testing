@@ -30,7 +30,7 @@ def evaluate_llm(
         cad_answer = llm.cad_generate_nq(
             context=context,
             question=question,
-            beta=beta,
+            gamma=beta,
             dola_layers_good=dola_layers_good,
             dola_layers_bad=dola_layers_bad,
             max_tokens=20,
