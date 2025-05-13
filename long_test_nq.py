@@ -103,6 +103,6 @@ if __name__ == "__main__":
             break
 
     print("Final results:", results)
-    with open(f'new_em_nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
+    with open(f'new_2_em_nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
         json.dump(results, json_file)
         print("Successfully finished the experiment")
