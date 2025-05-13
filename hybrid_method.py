@@ -75,6 +75,7 @@ class HybridMethod:
             dola_layers=dola_layers,
             max_new_tokens=1,
             min_new_tokens=1,
+            stopping_criteria=StoppingCriteriaList([self.stop_on_period])
         )
         if not isinstance(outputs, ModelOutput): return None
         if isinstance(outputs.scores, Tuple):
