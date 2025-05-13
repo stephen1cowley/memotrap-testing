@@ -64,7 +64,7 @@ if __name__ == "__main__":
     dola_layers_good: Union[Literal["high", "low"], None] = None if args.dola_layers_good == "None" else args.dola_layers_good
     dola_layers_bad: Union[Literal["high", "low"], None] = None if args.dola_layers_bad == "None" else args.dola_layers_bad
 
-    max_time: float = 1*3600
+    max_time: float = 7*3600
     
     with open(NQ_DATAPATH, 'r') as file:
         data: List[Any] = json.load(file)
@@ -78,8 +78,8 @@ if __name__ == "__main__":
     ex_time = time.time() - time_0
     print(f"Model load time: {ex_time:.4f}s", flush=True)
 
-    # betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
-    betas: List[float] = [-0.5]
+    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    # betas: List[float] = [-0.5]
     results: Dict[str, int] = {}
 
     for beta in betas:
