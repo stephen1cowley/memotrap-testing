@@ -43,9 +43,9 @@ def evaluate_llm(
             return score
 
         if idx % 100 == 0:
-            print(f"{idx}. CAD answer: {repr(normalize_answer(cad_answer))}")
-            print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i])) for i in range(len(answers))]))
-            print("Time:", time.time() - time_0)
+            print(f"{idx}. CAD answer: {repr(normalize_answer(cad_answer))}", flush=True)
+            print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i]), flush=True) for i in range(len(answers))]))
+            print("Time:", time.time() - time_0, flush=True)
         if evaluate_nq_ans_em(cad_answer, answers):
             score += 1
     print(f"RESULT: CAD with coefficient={beta}, dola-good set to {dola_layers_good}, dola-bad set to {dola_layers_bad}, model {llm.model_name}, we achieved a score of {score}/{len(data)}")
@@ -76,7 +76,7 @@ if __name__ == "__main__":
         device=args.device
     )
     ex_time = time.time() - time_0
-    print(f"Model load time: {ex_time:.4f}s")
+    print(f"Model load time: {ex_time:.4f}s", flush=True)
 
     # betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
     betas: List[float] = [-0.5]
