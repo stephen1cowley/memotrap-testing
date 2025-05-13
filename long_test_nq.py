@@ -44,7 +44,7 @@ def evaluate_llm(
 
         if idx % 100 == 0:
             print(f"{idx}. CAD answer: {repr(normalize_answer(cad_answer))}", flush=True)
-            print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i]), flush=True) for i in range(len(answers))]))
+            print(f"{idx}. Correct answers:", " ".join([repr(normalize_answer(answers[i])) for i in range(len(answers))]), flush=True)
             print("Time:", time.time() - time_0, flush=True)
         if evaluate_nq_ans_em(cad_answer, answers):
             score += 1
