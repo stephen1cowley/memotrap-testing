@@ -1,5 +1,5 @@
 #!/bin/bash
-source ~/pytorch-env/bin/activate
+source /rds/user/ssc42/hpc-work/pytorch-env/bin/activate
 
 sbatch /home/ssc42/ondemand/data/sys/myjobs/projects/default/$1/none_none.wilkes3
 sbatch /home/ssc42/ondemand/data/sys/myjobs/projects/default/$1/none_low.wilkes3
