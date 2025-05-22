@@ -16,6 +16,7 @@ def evaluate_llm(
         data: List[Any],
         dola_layers_good: Union[Literal['high', 'low'], None] = None,
         dola_layers_bad: Union[Literal['high', 'low'], None] = None,
+        prompt_id: str = "1",
     ) -> int:
     """
     Iterate through all memotrap questions and returns the CAD's score (max 860).
@@ -34,6 +35,7 @@ def evaluate_llm(
             dola_layers_good=dola_layers_good,
             dola_layers_bad=dola_layers_bad,
             max_tokens=20,
+            prompt_id=prompt_id,
         )
 
         if cad_answer == None: return -1  # Error with CAD generation
@@ -59,6 +61,7 @@ if __name__ == "__main__":
     parser.add_argument("--device", type=str, choices=["cuda", "cpu"], default="cuda")
     parser.add_argument("--dola-layers-good", type=str, choices=["high", "low", "None"], default="None")
     parser.add_argument("--dola-layers-bad", type=str, choices=["high", "low", "None"], default="None")
+    parser.add_argument("--prompt_id", type=str, default="1")
     args = parser.parse_args()
 
     dola_layers_good: Union[Literal["high", "low"], None] = None if args.dola_layers_good == "None" else args.dola_layers_good
@@ -93,6 +96,7 @@ if __name__ == "__main__":
             data=data,
             dola_layers_good=dola_layers_good,
             dola_layers_bad=dola_layers_bad,
+            prompt_id=args.prompt_id,
         )
         results[str(beta)] = score
         ex_time = time.time() - time_1
@@ -103,6 +107,6 @@ if __name__ == "__main__":
             break
 
     print("Final results:", results)
-    with open(f'new_2_em_nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}.json', 'w') as json_file:
+    with open(f'new_2_em_nq_cad_dola_{str(dola_layers_good)}_{str(dola_layers_bad)}_prompt_{args.prompt_id}.json', 'w') as json_file:
         json.dump(results, json_file)
         print("Successfully finished the experiment")

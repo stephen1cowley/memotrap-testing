@@ -445,7 +445,7 @@ class HybridMethod:
 
                 if self.tokenizer.decode(next_token_id) == ".":
                     break  # Stop generating after the sentence is ended
-            else: raise  
+            else: raise TypeError("generate_1 failed to return correct logits")  
         return context + ": " + prompt  # Assuming the space was taken out before context and prompt passed in
 
     def cad_generate_nq(
@@ -458,23 +458,67 @@ class HybridMethod:
             beta: float = 1.0,
             gamma: Union[float, None] = None,
             max_tokens: int = 20,
+            prompt_id: str = "1",
         ) -> Union[str, None]:
         """
         Given an input context and prompt, return the CAD-generated response
         """
-        sys_prompt_context: str = "Instruction: read the given information and answer the corresponding question.\n\n"
-        sys_prompt_no_context: str = "Instruction: answer the corresponding question.\n\n"
+        if prompt_id == "1":
+            sys_prompt_context: str = "Instruction: read the given information and answer the corresponding question.\n\n"
+            sys_prompt_no_context: str = "Instruction: answer the corresponding question.\n\n"
+        elif prompt_id == "2":  # Original CAD paper
+            sys_prompt_context: str = ""
+            sys_prompt_no_context: str = ""
+        elif prompt_id == "3":  # COIECD paper
+            sys_prompt_context: str = "Given the following information: "
+            sys_prompt_no_context: str = "Answer the following question based on your internal knowledge with one or few words: "
+        elif prompt_id == "4":  # AdaCAD paper
+            sys_prompt_context: str = ""
+            sys_prompt_no_context: str = "Answer the following question: Question: "
+        else:
+            raise ValueError("Invalid prompt id")
         output: str = " "
 
         for _ in range(max_tokens):
-            good_dis = self.generate_1(
-                input_text=sys_prompt_context + context + "\nQ: " + question + "\nA:" + output,
-                dola_layers=dola_layers_good
-            )
-            bad_dis = self.generate_1(
-                input_text=sys_prompt_no_context + "Q: " + question + "\nA:" + output,
-                dola_layers=dola_layers_bad
-            )
+            if prompt_id == "1":
+                good_dis = self.generate_1(
+                    input_text=sys_prompt_context + context + "\nQ: " + question + "\nA:" + output,
+                    dola_layers=dola_layers_good,
+                )
+                bad_dis = self.generate_1(
+                    input_text=sys_prompt_no_context + "Q: " + question + "\nA:" + output,
+                    dola_layers=dola_layers_bad,
+                )
+            elif prompt_id == "2":  # Original CAD paper
+                good_dis = self.generate_1(
+                    input_text=sys_prompt_context + context + " " + question + output,
+                    dola_layers=dola_layers_good,
+                )
+                bad_dis = self.generate_1(
+                    input_text=sys_prompt_no_context + question + output,
+                    dola_layers=dola_layers_bad,
+                )
+            elif prompt_id == "3":  # COIECD paper
+                good_dis = self.generate_1(
+                    input_text=sys_prompt_context + context + "\nAnswer the following question based on the given information with one or few words: " + question + "\nAnswer:" + output,
+                    dola_layers=dola_layers_good,
+                )
+                bad_dis = self.generate_1(
+                    input_text=sys_prompt_no_context + question + "\nAnswer:" + output,
+                    dola_layers=dola_layers_bad,
+                )
+            elif prompt_id == "4":  # AdaCAD paper
+                good_dis = self.generate_1(
+                    input_text=sys_prompt_context + context + "\nUsing only the references listed above, answer the following question:\nQuestion: " + question + ".\nAnswer:\n" + output,
+                    dola_layers=dola_layers_good,
+                )
+                bad_dis = self.generate_1(
+                    input_text=sys_prompt_no_context + question + ". Answer:\n" + output,
+                    dola_layers=dola_layers_bad,
+                )
+            else:
+                raise ValueError("Invalid prompt id")
+
             if good_dis is not None and bad_dis is not None:
                 if gamma is None:
                     next_token_id = self.contrastive_decoding(
@@ -487,7 +531,7 @@ class HybridMethod:
                     next_token_id = self.contrastive_decoding_novel(
                         bad_distribution=bad_dis,
                         good_distribution=good_dis,
-                        gamma=gamma
+                        gamma=gamma,
                     )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
