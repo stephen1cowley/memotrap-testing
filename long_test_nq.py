@@ -81,9 +81,9 @@ if __name__ == "__main__":
     ex_time = time.time() - time_0
     print(f"Model load time: {ex_time:.4f}s", flush=True)
 
-    betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    # betas: List[float] = [-1.0, -0.5, 0.0, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5, 4.0]
     # betas: List[float] = [-1.0, 0.0, 0.5, 1.0, 1.5]
-    # betas: List[float] = [-0.5, 2.0, 2.5, 3.0, 3.5, 4.0]
+    betas: List[float] = [4.0, 3.5, 3.0]
     results: Dict[str, int] = {}
 
     for beta in betas:
