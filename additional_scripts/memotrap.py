@@ -1,3 +1,7 @@
+"""
+Pilot code testing script for the memotrap dataset
+"""
+
 from typing import List, Literal
 import ast
 import pandas as pd
