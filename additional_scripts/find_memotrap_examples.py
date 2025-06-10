@@ -1,3 +1,7 @@
+"""
+Finds the questions of interest (correct with regular CAD, incorrect with CAD-DoLa) for Simplex visualisation in the memotrap dataset
+"""
+
 from typing import List, Literal, Any, Union, Dict
 import ast
 import pandas as pd

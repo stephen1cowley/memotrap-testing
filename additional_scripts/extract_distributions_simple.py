@@ -1,3 +1,7 @@
+"""
+Extracts the token probability distributions of the memotrap dataset for Simplex visualisation
+"""
+
 from hybrid_method import HybridMethod
 import json
 from utils import renormalize_pmf
