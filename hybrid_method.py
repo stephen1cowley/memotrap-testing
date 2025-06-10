@@ -1,15 +1,12 @@
 """
-Main class for evaluating CAD and Additive CAD on the MemoTrap and Natural Questions datasets
+Main class for evaluating CAD and Additive CAD on the MemoTrap and Natural Questions benchmarks
 """
 
 from typing import Literal, Any, Tuple, List, Union, Dict, Optional
 import torch
-import numpy as np
-import torch.nn.functional as F
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel, StoppingCriteria, StoppingCriteriaList
-from transformers.generation.utils import GenerateOutput, ModelOutput
+from transformers.generation.utils import ModelOutput
 
-from transformers import StoppingCriteria, StoppingCriteriaList
 
 class StopOnPeriod(StoppingCriteria):
     def __init__(self, tokenizer: PreTrainedTokenizer):
@@ -19,6 +16,7 @@ class StopOnPeriod(StoppingCriteria):
     
     def __call__(self, input_ids: torch.LongTensor, scores, **kwargs) -> bool:
         return self.tokenizer.decode(self.stop_token) in self.tokenizer.decode(input_ids[0])
+
 
 class HybridMethod:
     """
@@ -86,7 +84,7 @@ class HybridMethod:
             if isinstance(outputs.scores[0], torch.Tensor):
                 return outputs.scores[0]
         return None
-    
+
     def generate_1_final_dis(
             self,
             input_text: str,
@@ -109,8 +107,8 @@ class HybridMethod:
         )
         if not isinstance(outputs, ModelOutput): return None
 
-        return outputs.scores[0] #type: ignore
-    
+        return outputs.scores[0]  # type: ignore
+
     def generate_1_each_dis(
             self,
             input_text: str,
@@ -155,7 +153,7 @@ class HybridMethod:
         """
         Takes the tensor distribution and returns something a bit more readable.
         """
-        
+
         pmf: Dict[str, float] = {}
         probs = torch.softmax(distribution, dim=-1)
 
@@ -194,7 +192,7 @@ class HybridMethod:
             dola_layers=None
         )
         print("Extracted each_dis_no_context")
-        
+
         dis_no_context = self.generate_1_final_dis(
             input_text=prompt,
             dola_layers=None
@@ -204,7 +202,7 @@ class HybridMethod:
             input_text=context + ': ' + prompt,
             dola_layers=None
         )
-        
+
         each_cad_dis: Dict[str, Any] = {}
 
         for beta in betas:
@@ -259,7 +257,7 @@ class HybridMethod:
         for key in pmf:
             norm_pmf[key] = pmf[key] / Z if Z !=0 else 1 / len(pmf)
         return norm_pmf
-    
+
     def determine_candidate_3(
             self,
             context: str,
@@ -312,7 +310,6 @@ class HybridMethod:
         else:
             return [best_cad_ids[0]] + [best_dola_cad_id[0]] + [bad_ids[2]]
 
-
     def contrastive_decoding(
             self,
             bad_distribution: torch.Tensor,
@@ -345,10 +342,10 @@ class HybridMethod:
             if logit > max_logit:
                 max_logit = logit
                 can_id = id
-        if not can_id is None:
+        if can_id is not None:
             return can_id
         return -1
-    
+
     def contrastive_decoding_novel(
             self,
             bad_distribution: torch.Tensor,
@@ -372,10 +369,10 @@ class HybridMethod:
         new_probs = bad_probs + (good_probs - bad_probs) * (10**gamma)
         max_index = torch.argmax(new_probs).item()
 
-        if not max_index is None:
+        if max_index is not None:
             return int(max_index)
         return -1
-    
+
     def contrastive_decoding_verb(
             self,
             bad_distribution: torch.Tensor,
@@ -539,7 +536,7 @@ class HybridMethod:
                     )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
-                
+
                 # NOTE: the following is a non-standard way of decoding (we decode/encode a running string)
                 # This is less efficient than keeping everything as tokens, but is more intuitive
                 # This approach was kept constant across all experiments

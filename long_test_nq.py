@@ -6,11 +6,11 @@ from typing import List, Any, Union, Literal, Dict
 from hybrid_method import HybridMethod
 import argparse
 import json
-from utils import normalize_answer, evaluate_nq_ans_recall, evaluate_nq_ans_em
+from utils import normalize_answer, evaluate_nq_ans_em
 import time
 
 NQ_DATAPATH = 'nq/orig_dev_filtered.json'
-MODEL = '4bit/Llama-2-7b-chat-hf'
+
 
 def evaluate_llm(
         llm: HybridMethod,

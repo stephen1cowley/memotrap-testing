@@ -31,18 +31,6 @@ def normalize_answer(s: str) -> str:
 def exact_match_score(prediction: str, ground_truth: str) -> bool:
     return (normalize_answer(prediction) == normalize_answer(ground_truth))    
 
-def evaluate_nq_ans_recall(
-        prediction: str,
-        answers: List[str],
-    ) -> bool:
-    "Substring match score given a list of correct answers"
-    norm_prediction = normalize_answer(prediction)
-    norm_answers = [normalize_answer(ans) for ans in answers]
-
-    for norm_answer in norm_answers:
-        if norm_answer in norm_prediction:
-            return True
-    return False
 
 def evaluate_nq_ans_em(
         prediction: str,
@@ -53,26 +41,3 @@ def evaluate_nq_ans_em(
     norm_answers = [normalize_answer(ans) for ans in answers]
 
     return norm_prediction in norm_answers
-
-def recall_score(prediction, ground_truth):
-    "Substring match score given a list of correct answers"
-    prediction = normalize_answer(prediction)
-    ground_truth = normalize_answer(ground_truth)
-    return (ground_truth in prediction)
-
-def get_score(preds, golds):
-    em, recall = 0, 0
-    for pred, gold in zip(preds, golds):
-        if isinstance(gold, list):
-            _em, _recall = 0, 0
-            for g in gold:
-                _em = max(exact_match_score(pred, g), _em)
-                _recall = max(recall_score(pred, g), _recall)
-            em += _em
-            recall += _recall
-        else:
-            em += exact_match_score(pred, gold)
-            recall += recall_score(pred, gold)
-    em = em * 100 / (len(preds) + 1e-5)
-    recall = recall * 100 / (len(preds) + 1e-5)
-    return em, recall

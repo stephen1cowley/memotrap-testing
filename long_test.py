@@ -10,7 +10,9 @@ import argparse
 import json
 import time
 
+
 MEMOTRAP_DATAPATH = 'memotrap/1-proverb-ending.csv'
+
 
 def unmarshall_list(data: str) -> List[str]:
     # Use ast.literal_eval to convert the string into a list
