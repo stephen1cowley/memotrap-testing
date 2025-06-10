@@ -1,3 +1,7 @@
+"""
+Main class for evaluating CAD and Additive CAD on the MemoTrap and Natural Questions datasets
+"""
+
 from typing import Literal, Any, Tuple, List, Union, Dict, Optional
 import torch
 import numpy as np
@@ -535,6 +539,10 @@ class HybridMethod:
                     )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
+                
+                # NOTE: the following is a non-standard way of decoding (we decode/encode a running string)
+                # This is less efficient than keeping everything as tokens, but is more intuitive
+                # This approach was kept constant across all experiments
                 output = self.tokenizer.decode(self.tokenizer.encode(output) + [next_token_id], skip_special_tokens=True)
 
                 stopping_symbols = [".", "\n"]

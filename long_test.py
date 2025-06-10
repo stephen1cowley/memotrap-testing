@@ -1,3 +1,7 @@
+"""
+Evaluates CAD/Additive CAD on the MemoTrap dataset
+"""
+
 from typing import List, Literal, Any, Union, Dict
 import ast
 import pandas as pd

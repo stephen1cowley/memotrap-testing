@@ -1,3 +1,7 @@
+"""
+Evaluates CAD/Additive CAD on the Natural Questions dataset
+"""
+
 from typing import List, Any, Union, Literal, Dict
 from hybrid_method import HybridMethod
 import argparse

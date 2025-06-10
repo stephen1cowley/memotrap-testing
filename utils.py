@@ -1,3 +1,7 @@
+"""
+Standard evaluation metrics scripts
+"""
+
 import re
 import string
 from typing import List, Dict
@@ -31,7 +35,7 @@ def evaluate_nq_ans_recall(
         prediction: str,
         answers: List[str],
     ) -> bool:
-    "Recall metric (not exact match)"
+    "Substring match score given a list of correct answers"
     norm_prediction = normalize_answer(prediction)
     norm_answers = [normalize_answer(ans) for ans in answers]
 
@@ -51,6 +55,7 @@ def evaluate_nq_ans_em(
     return norm_prediction in norm_answers
 
 def recall_score(prediction, ground_truth):
+    "Substring match score given a list of correct answers"
     prediction = normalize_answer(prediction)
     ground_truth = normalize_answer(ground_truth)
     return (ground_truth in prediction)
