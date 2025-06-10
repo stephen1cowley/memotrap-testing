@@ -6,6 +6,7 @@ import re
 import string
 from typing import List, Dict
 
+
 def renormalize_pmf(pmf: Dict[str, float]) -> Dict[str, float]:
         "Make sure a dict pmf has values that sum to 1.0"
         Z = sum([prob for prob in pmf.values()])
@@ -27,6 +28,7 @@ def normalize_answer(s: str) -> str:
     def lower(text):
         return text.lower()
     return white_space_fix(remove_articles(remove_punc(lower(s))))
+
 
 def exact_match_score(prediction: str, ground_truth: str) -> bool:
     return (normalize_answer(prediction) == normalize_answer(ground_truth))    

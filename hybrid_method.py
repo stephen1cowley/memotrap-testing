@@ -13,7 +13,7 @@ class StopOnPeriod(StoppingCriteria):
         super().__init__()
         self.stop_token = tokenizer.encode(text=".", add_special_tokens=False)[-1]
         self.tokenizer = tokenizer
-    
+
     def __call__(self, input_ids: torch.LongTensor, scores, **kwargs) -> bool:
         return self.tokenizer.decode(self.stop_token) in self.tokenizer.decode(input_ids[0])
 
